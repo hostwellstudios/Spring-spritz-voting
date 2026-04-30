@@ -1,11 +1,10 @@
 // Supabase client singleton.
-// anonClient  — used by all guest operations (RLS enforced)
-// adminClient — used only when isAdmin; uses service_role key (bypasses RLS)
+// All guest operations use anonClient (RLS enforced).
+// Admin writes go through the Edge Function — service_role key never touches the browser.
 
 const SupabaseLib = window.supabase;
 
-const anonClient  = SupabaseLib.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
-const adminClient = SupabaseLib.createClient(CONFIG.supabaseUrl, CONFIG.supabaseServiceKey);
+const anonClient = SupabaseLib.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
 
 // ----------------------------------------------------------------
 // Realtime subscriptions
@@ -128,38 +127,29 @@ async function fetchSharedNotes() {
   return data;
 }
 
-// Admin-only helpers (use service_role client)
+// Admin-only helpers — call the Edge Function (service_role key stays server-side)
 
-async function adminInsertDrink(name, teamMembers) {
-  const { data, error } = await adminClient
-    .from('drinks')
-    .insert({ name, team_members: teamMembers })
-    .select()
-    .single();
+async function callAdminFunction(action, payload = {}) {
+  const { data, error } = await anonClient.functions.invoke('admin', {
+    body: { action, password: CONFIG.adminPassword, ...payload },
+  });
   if (error) throw error;
+  if (data?.error) throw new Error(data.error);
   return data;
 }
 
+async function adminInsertDrink(name, teamMembers) {
+  return callAdminFunction('add_drink', { name, team_members: teamMembers });
+}
+
 async function adminDeleteDrink(drinkId) {
-  const { error } = await adminClient
-    .from('drinks')
-    .delete()
-    .eq('id', drinkId);
-  if (error) throw error;
+  return callAdminFunction('delete_drink', { drink_id: drinkId });
 }
 
 async function adminUpdateDrink(drinkId, name, teamMembers) {
-  const { error } = await adminClient
-    .from('drinks')
-    .update({ name, team_members: teamMembers })
-    .eq('id', drinkId);
-  if (error) throw error;
+  return callAdminFunction('update_drink', { drink_id: drinkId, name, team_members: teamMembers });
 }
 
 async function adminAdvancePhase(nextPhase) {
-  const { error } = await adminClient
-    .from('app_state')
-    .update({ phase: nextPhase })
-    .eq('id', 1);
-  if (error) throw error;
+  return callAdminFunction('advance_phase', { phase: nextPhase });
 }
