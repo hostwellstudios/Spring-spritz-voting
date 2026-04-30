@@ -42,10 +42,7 @@ Deno.serve(async (req) => {
       }
 
       case 'delete_drink': {
-        const { error } = await supabase
-          .from('drinks')
-          .delete()
-          .eq('id', data.drink_id);
+        const { error } = await supabase.from('drinks').delete().eq('id', data.drink_id);
         if (error) throw error;
         result = { ok: true };
         break;
@@ -67,6 +64,42 @@ Deno.serve(async (req) => {
           .update({ phase: data.phase })
           .eq('id', 1);
         if (error) throw error;
+        result = { ok: true };
+        break;
+      }
+
+      case 'share_results': {
+        const { error } = await supabase
+          .from('app_state')
+          .update({ results_shared: true })
+          .eq('id', 1);
+        if (error) throw error;
+        result = { ok: true };
+        break;
+      }
+
+      case 'reset_party': {
+        // Delete in dependency order (votes + notes before guests, guests before drinks)
+        const steps = [
+          supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('tasting_notes').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        ];
+        for (const step of steps) {
+          const { error } = await step;
+          if (error) throw error;
+        }
+        const { error: guestErr } = await supabase
+          .from('guests')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+        if (guestErr) throw guestErr;
+
+        const { error: stateErr } = await supabase
+          .from('app_state')
+          .update({ phase: 'onboarding', results_shared: false })
+          .eq('id', 1);
+        if (stateErr) throw stateErr;
+
         result = { ok: true };
         break;
       }

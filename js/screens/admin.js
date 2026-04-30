@@ -1,15 +1,15 @@
 const Admin = (() => {
   const PHASES = ['onboarding', 'tasting', 'voting', 'results'];
   const PHASE_LABELS = {
-    onboarding:  'Onboarding',
-    tasting:     'Tasting',
-    voting:      'Voting',
-    results:     'Results',
+    onboarding: 'Onboarding',
+    tasting:    'Tasting',
+    voting:     'Voting',
+    results:    'Results',
   };
   const PHASE_NEXT_LABEL = {
     onboarding: '▶ Open Tasting Phase',
     tasting:    '▶ Open Voting Phase',
-    voting:     '▶ Show Results',
+    voting:     '▶ Show Results (Admin Only)',
     results:    null,
   };
 
@@ -51,20 +51,32 @@ const Admin = (() => {
   }
 
   function renderPhaseControls() {
-    const label = document.getElementById('admin-phase-label');
-    const btn   = document.getElementById('admin-advance-btn');
-    if (!label || !btn) return;
+    const label      = document.getElementById('admin-phase-label');
+    const advanceBtn = document.getElementById('admin-advance-btn');
+    const shareBtn   = document.getElementById('admin-share-btn');
+    const resetBtn   = document.getElementById('admin-reset-btn');
+    if (!label || !advanceBtn) return;
 
     label.textContent = 'Phase: ' + PHASE_LABELS[State.phase];
 
+    // Advance button
     const nextLabel = PHASE_NEXT_LABEL[State.phase];
     if (nextLabel) {
-      btn.textContent = nextLabel;
-      btn.disabled    = false;
+      advanceBtn.textContent = nextLabel;
+      advanceBtn.disabled    = false;
+      advanceBtn.hidden      = false;
     } else {
-      btn.textContent = 'Results are live';
-      btn.disabled    = true;
+      advanceBtn.hidden = true;
     }
+
+    // Share results button — only when in results phase and not yet shared
+    if (shareBtn) {
+      shareBtn.hidden   = !(State.phase === 'results' && !State.resultsShared);
+      shareBtn.disabled = false;
+    }
+
+    // Reset button always visible
+    if (resetBtn) resetBtn.disabled = false;
   }
 
   function init() {
@@ -79,21 +91,13 @@ const Admin = (() => {
       e.preventDefault();
       const nameInput    = document.getElementById('admin-drink-name');
       const membersInput = document.getElementById('admin-team-members');
+      const name         = nameInput.value.trim();
+      const teamMembers  = membersInput.value.split(',').map(s => s.trim()).filter(Boolean);
 
-      const name        = nameInput.value.trim();
-      const teamMembers = membersInput.value
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-
-      if (!name) {
-        showToast('Drink name is required', 'error');
-        return;
-      }
+      if (!name) { showToast('Drink name is required', 'error'); return; }
 
       const submitBtn = form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-
       try {
         await adminInsertDrink(name, teamMembers);
         State.drinks = await fetchDrinks();
@@ -113,16 +117,14 @@ const Admin = (() => {
     // Advance phase button
     const advanceBtn = document.getElementById('admin-advance-btn');
     advanceBtn.addEventListener('click', async () => {
-      const idx  = PHASES.indexOf(State.phase);
+      const idx = PHASES.indexOf(State.phase);
       if (idx < 0 || idx >= PHASES.length - 1) return;
-
       const nextPhase = PHASES[idx + 1];
       if (!confirm(`Advance to ${PHASE_LABELS[nextPhase]} phase? This cannot be undone.`)) return;
 
       advanceBtn.disabled = true;
       try {
         await adminAdvancePhase(nextPhase);
-        // The realtime subscription will update State.phase and re-render for everyone
         showToast('Phase advanced to ' + PHASE_LABELS[nextPhase], 'success');
       } catch (err) {
         console.error(err);
@@ -130,9 +132,41 @@ const Admin = (() => {
         advanceBtn.disabled = false;
       }
     });
+
+    // Share results button
+    const shareBtn = document.getElementById('admin-share-btn');
+    shareBtn.addEventListener('click', async () => {
+      if (!confirm('Share results with everyone? They will all see the results screen.')) return;
+      shareBtn.disabled = true;
+      try {
+        await adminShareResults();
+        State.resultsShared = true;
+        renderPhaseControls();
+        showToast('Results shared with everyone 🎉', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Could not share results', 'error');
+        shareBtn.disabled = false;
+      }
+    });
+
+    // Reset party button
+    const resetBtn = document.getElementById('admin-reset-btn');
+    resetBtn.addEventListener('click', async () => {
+      if (!confirm('⚠️ Reset the entire party? This deletes ALL guests, votes, and notes and cannot be undone.')) return;
+      if (!confirm('Are you absolutely sure? All data will be lost.')) return;
+      resetBtn.disabled = true;
+      try {
+        await adminResetParty();
+        showToast('Party reset — back to the start', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Could not reset', 'error');
+        resetBtn.disabled = false;
+      }
+    });
   }
 
-  // Re-render admin controls whenever phase changes (called from router.js)
   function onPhaseChange() {
     if (State.isAdmin) renderPhaseControls();
   }

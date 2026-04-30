@@ -55,6 +55,11 @@ const Onboarding = (() => {
 
         showToast('Welcome, ' + guest.name + '! 🍹', 'success');
         Router.render();
+
+        // Init the current phase screen for a guest who joined mid-flow
+        if (State.phase === 'tasting') Tasting.init();
+        if (State.phase === 'voting')  Voting.init();
+        if (State.phase === 'results' && (State.isAdmin || State.resultsShared)) Results.load();
       } catch (err) {
         console.error(err);
         showToast('Could not join — please try again', 'error');

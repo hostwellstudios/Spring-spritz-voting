@@ -1,5 +1,4 @@
-// Router maps (state.phase + state.guestId) → which screen section is visible.
-// Admin panel visibility is handled separately (always shown when isAdmin).
+// Router maps (state.phase + state.guestId + state.resultsShared) → which screen is visible.
 
 const Router = (() => {
   const SCREENS = [
@@ -18,13 +17,13 @@ const Router = (() => {
   }
 
   function render() {
-    const { phase, guestId, votesSubmitted, isAdmin } = State;
+    const { phase, resultsShared, guestId, votesSubmitted, isAdmin } = State;
 
     // Admin panel visibility
     const adminPanel = document.getElementById('screen-admin');
     if (adminPanel) adminPanel.hidden = !isAdmin;
 
-    // No guest registered yet — always show onboarding regardless of phase
+    // No guest registered — always show onboarding regardless of phase
     if (!guestId) {
       showScreen('screen-onboarding');
       return;
@@ -52,7 +51,13 @@ const Router = (() => {
         break;
 
       case 'results':
-        showScreen('screen-results');
+        if (isAdmin || resultsShared) {
+          showScreen('screen-results');
+        } else {
+          document.getElementById('waiting-title').textContent    = 'Results incoming… 🏆';
+          document.getElementById('waiting-subtitle').textContent = 'The host is about to reveal the winners!';
+          showScreen('screen-waiting');
+        }
         break;
 
       default:
@@ -62,6 +67,26 @@ const Router = (() => {
 
   return { render };
 })();
+
+// ----------------------------------------------------------------
+// Shared utility — used by App.init and the realtime handler
+// ----------------------------------------------------------------
+
+function clearGuestStorage() {
+  localStorage.removeItem('spritz_guest_id');
+  localStorage.removeItem('spritz_guest_name');
+  localStorage.removeItem('spritz_guest_drink_id');
+  localStorage.removeItem('spritz_votes_submitted');
+}
+
+function clearGuestState() {
+  State.guestId        = null;
+  State.guestName      = null;
+  State.guestDrinkId   = null;
+  State.votesSubmitted = false;
+  State.myNotes        = {};
+  clearGuestStorage();
+}
 
 // ----------------------------------------------------------------
 // Global app bootstrap
@@ -78,78 +103,93 @@ const App = (() => {
     }
 
     // Restore guest session from localStorage
-    const savedId   = localStorage.getItem('spritz_guest_id');
-    const savedName = localStorage.getItem('spritz_guest_name');
-    const savedDrink = localStorage.getItem('spritz_guest_drink_id');
+    const savedId = localStorage.getItem('spritz_guest_id');
 
     if (savedId) {
-      // Verify the guest still exists in the DB (handles DB resets)
       const guest = await fetchGuest(savedId);
       if (guest) {
         State.guestId      = guest.id;
         State.guestName    = guest.name;
         State.guestDrinkId = guest.drink_id;
 
-        // Check if they already submitted votes this session
-        const savedVoted = localStorage.getItem('spritz_votes_submitted');
-        if (savedVoted === '1') State.votesSubmitted = true;
+        if (localStorage.getItem('spritz_votes_submitted') === '1') {
+          State.votesSubmitted = true;
+        }
 
-        // Reload their tasting notes into state
         const notes = await fetchMyTastingNotes(State.guestId);
         notes.forEach(n => {
           State.myNotes[n.drink_id] = { text: n.note_text, share: n.share_anonymous };
         });
       } else {
-        // Guest not found — clear stale localStorage
-        clearGuestStorage();
+        clearGuestState();
       }
     }
 
-    // Load initial phase and drinks
+    // Load initial app state and drinks
     try {
-      State.phase  = await fetchPhase();
+      const appState   = await fetchAppState();
+      State.phase        = appState.phase;
+      State.resultsShared = appState.resultsShared;
       State.drinks = await fetchDrinks();
     } catch (err) {
       showToast('Could not connect to database', 'error');
       console.error(err);
     }
 
-    // Subscribe to phase changes (every client)
-    subscribeToPhaseChanges((newPhase) => {
-      State.phase = newPhase;
+    // Subscribe to app_state changes (every client)
+    subscribeToAppStateChanges(async ({ phase, resultsShared }) => {
+      const prevPhase = State.phase;
+      State.phase        = phase;
+      State.resultsShared = resultsShared;
+
+      // Party was reset — if our guest no longer exists, clear session
+      if (phase === 'onboarding' && State.guestId) {
+        const guest = await fetchGuest(State.guestId);
+        if (!guest) clearGuestState();
+      }
+
       Router.render();
-      // Stop watching drinks once we're past onboarding
-      if (newPhase !== 'onboarding' && drinksChannel) {
+
+      // Stop watching drinks once past onboarding
+      if (phase !== 'onboarding' && drinksChannel) {
         drinksChannel.unsubscribe();
         drinksChannel = null;
       }
-      // Initialise the screen that just became active
-      if (newPhase === 'tasting')  Tasting.init();
-      if (newPhase === 'voting')   Voting.init();
-      if (newPhase === 'results')  Results.load();
-      if (State.isAdmin)           Admin.onPhaseChange();
+
+      // Init newly active screens (only when phase actually changed)
+      if (phase !== prevPhase) {
+        if (phase === 'tasting') Tasting.init();
+        if (phase === 'voting')  Voting.init();
+        if (phase === 'results') Results.load();
+      }
+
+      // Results just got shared — load for guests seeing it for the first time
+      if (phase === 'results' && resultsShared && !State.isAdmin) Results.load();
+
+      if (State.isAdmin) Admin.onPhaseChange();
     });
 
-    // Subscribe to drink changes (keep onboarding dropdown live)
+    // Subscribe to drink changes
     drinksChannel = subscribeToDrinksChanges(async () => {
       State.drinks = await fetchDrinks();
       Onboarding.refreshDrinkSelect();
     });
 
-    // Admin subscribes to votes for live results
+    // Admin watches votes for live tally during results
     if (State.isAdmin) {
       subscribeToVotesChanges(() => {
         if (State.phase === 'results') Results.load();
       });
     }
 
-    // iOS Safari: re-sync phase when tab resumes from background
+    // iOS Safari: re-sync on tab resume
     document.addEventListener('visibilitychange', async () => {
       if (!document.hidden) {
         try {
-          const currentPhase = await fetchPhase();
-          if (currentPhase !== State.phase) {
-            State.phase = currentPhase;
+          const appState = await fetchAppState();
+          if (appState.phase !== State.phase || appState.resultsShared !== State.resultsShared) {
+            State.phase        = appState.phase;
+            State.resultsShared = appState.resultsShared;
             Router.render();
           }
         } catch (_) { /* silent */ }
@@ -159,26 +199,19 @@ const App = (() => {
     // Initial render
     Router.render();
 
-    // Initialise screens
-    Onboarding.init();  // always bind the form (it's hidden by router when not needed)
-    if (State.phase === 'tasting')  Tasting.init();
+    // Init screens
+    Onboarding.init();
+    if (State.phase === 'tasting') Tasting.init();
     if (State.guestId && State.phase === 'voting' && !State.votesSubmitted) Voting.init();
-    if (State.phase === 'results')  Results.load();
-    if (State.isAdmin)              Admin.init();
-  }
-
-  function clearGuestStorage() {
-    localStorage.removeItem('spritz_guest_id');
-    localStorage.removeItem('spritz_guest_name');
-    localStorage.removeItem('spritz_guest_drink_id');
-    localStorage.removeItem('spritz_votes_submitted');
+    if (State.phase === 'results' && (State.isAdmin || State.resultsShared)) Results.load();
+    if (State.isAdmin) Admin.init();
   }
 
   return { init };
 })();
 
 // ----------------------------------------------------------------
-// Toast helper — global utility used by all screens
+// Toast helper
 // ----------------------------------------------------------------
 
 let toastTimer = null;

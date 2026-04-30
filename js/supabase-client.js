@@ -10,12 +10,15 @@ const anonClient = SupabaseLib.createClient(CONFIG.supabaseUrl, CONFIG.supabaseA
 // Realtime subscriptions
 // ----------------------------------------------------------------
 
-function subscribeToPhaseChanges(onPhaseChange) {
+function subscribeToAppStateChanges(onAppStateChange) {
   return anonClient
     .channel('phase-watch')
     .on('postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'app_state' },
-      (payload) => onPhaseChange(payload.new.phase)
+      (payload) => onAppStateChange({
+        phase:         payload.new.phase,
+        resultsShared: payload.new.results_shared,
+      })
     )
     .subscribe();
 }
@@ -44,14 +47,14 @@ function subscribeToVotesChanges(onVotesChange) {
 // Data helpers
 // ----------------------------------------------------------------
 
-async function fetchPhase() {
+async function fetchAppState() {
   const { data, error } = await anonClient
     .from('app_state')
-    .select('phase')
+    .select('phase, results_shared')
     .eq('id', 1)
     .single();
   if (error) throw error;
-  return data.phase;
+  return { phase: data.phase, resultsShared: data.results_shared };
 }
 
 async function fetchDrinks() {
@@ -152,4 +155,12 @@ async function adminUpdateDrink(drinkId, name, teamMembers) {
 
 async function adminAdvancePhase(nextPhase) {
   return callAdminFunction('advance_phase', { phase: nextPhase });
+}
+
+async function adminShareResults() {
+  return callAdminFunction('share_results');
+}
+
+async function adminResetParty() {
+  return callAdminFunction('reset_party');
 }

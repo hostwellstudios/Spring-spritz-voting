@@ -114,6 +114,12 @@ h3 { font-size: var(--text-lg); font-weight: 600; }
   color: var(--color-error);
 }
 
+.btn-success {
+  background: var(--color-success);
+  color: #fff;
+}
+.btn-success:hover { background: #226b3c; }
+
 .btn-sm {
   padding: var(--sp-2) var(--sp-4);
   font-size: var(--text-sm);

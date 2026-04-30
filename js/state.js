@@ -3,6 +3,7 @@
 
 const State = {
   phase:          'onboarding',
+  resultsShared:  false,
   guestId:        null,
   guestName:      null,
   guestDrinkId:   null,  // null = non-competitor / taster only

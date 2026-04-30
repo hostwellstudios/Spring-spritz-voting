@@ -208,12 +208,9 @@ const Results = (() => {
 
       container.innerHTML = html;
 
-      // Show PDF button for admin
-      const pdfSection = document.getElementById('admin-pdf-section');
-      if (pdfSection) pdfSection.hidden = !State.isAdmin;
-
-      // Store computed data for PDF export
-      Results._computed = { scores, rankedByCategory, rankedOverall, sharedNotes };
+      // Show image download button once results are shared (visible to everyone)
+      const downloadSection = document.getElementById('results-download-section');
+      if (downloadSection) downloadSection.hidden = !State.resultsShared;
 
     } catch (err) {
       console.error(err);
@@ -221,14 +218,57 @@ const Results = (() => {
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const pdfBtn = document.getElementById('pdf-download-btn');
-    if (pdfBtn) {
-      pdfBtn.addEventListener('click', () => {
-        PdfExport.generate(Results._computed);
+  // ----------------------------------------------------------------
+  // Image download via html2canvas
+  // ----------------------------------------------------------------
+
+  const HTML2CANVAS_CDN = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+
+  function loadHtml2Canvas() {
+    return new Promise((resolve, reject) => {
+      if (window.html2canvas) { resolve(window.html2canvas); return; }
+      const script   = document.createElement('script');
+      script.src     = HTML2CANVAS_CDN;
+      script.onload  = () => resolve(window.html2canvas);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  async function downloadAsImage() {
+    const btn = document.getElementById('image-download-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Capturing…'; }
+
+    try {
+      const html2canvas = await loadHtml2Canvas();
+      const target      = document.getElementById('results-content');
+
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#fdf6ee',
+        scale: 2,           // retina quality
+        useCORS: true,
+        scrollY: -window.scrollY,
       });
+
+      const link    = document.createElement('a');
+      link.download = 'spritz-results.png';
+      link.href     = canvas.toDataURL('image/png');
+      link.click();
+      showToast('Image saved ✓', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not save image', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '📸 Save as Image'; }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const imageBtn = document.getElementById('image-download-btn');
+    if (imageBtn) {
+      imageBtn.addEventListener('click', downloadAsImage);
     }
   });
 
-  return { load, _computed: null };
+  return { load };
 })();

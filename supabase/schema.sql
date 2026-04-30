@@ -43,12 +43,18 @@ create table votes (
 
 -- Singleton row: enforced by primary key = 1 constraint
 create table app_state (
-  id    integer primary key default 1 check (id = 1),
-  phase text not null default 'onboarding'
-          check (phase in ('onboarding', 'tasting', 'voting', 'results'))
+  id              integer primary key default 1 check (id = 1),
+  phase           text not null default 'onboarding'
+                    check (phase in ('onboarding', 'tasting', 'voting', 'results')),
+  results_shared  boolean not null default false
 );
 
-insert into app_state (id, phase) values (1, 'onboarding');
+insert into app_state (id, phase, results_shared) values (1, 'onboarding', false);
+
+-- ============================================================
+-- MIGRATION (run if table already exists)
+-- alter table app_state add column results_shared boolean not null default false;
+-- ============================================================
 
 -- ============================================================
 -- ROW LEVEL SECURITY
