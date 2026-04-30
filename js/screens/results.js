@@ -69,47 +69,27 @@ const Results = (() => {
   // Rendering
   // ----------------------------------------------------------------
 
-  function renderPodium(rankedDrinks, category) {
-    const drinkMap = Object.fromEntries(State.drinks.map(d => [d.id, d]));
-    const top3     = rankedDrinks.slice(0, 3);
-
-    return `
-      <div class="results-section">
-        <h2>${CAT_ICONS[category]} ${CAT_LABELS[category]}</h2>
-        <div class="podium">
-          ${top3.map((e, i) => {
-            const d = drinkMap[e.id];
-            if (!d) return '';
-            return `
-              <div class="podium-item">
-                <div class="podium-medal">${MEDALS[i] || (i + 1)}</div>
-                <div>
-                  <div class="podium-drink-name">${escapeHtml(d.name)}</div>
-                  <div class="podium-drink-team">${escapeHtml(d.team_members.join(', '))}</div>
-                </div>
-                <div class="podium-score">${e.pts} pts</div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+  function medalForRank(rank) {
+    return MEDALS[rank - 1] || null;
   }
 
-  function renderOverall(rankedOverall) {
+  function renderPodiumSection(title, rankedDrinks) {
     const drinkMap = Object.fromEntries(State.drinks.map(d => [d.id, d]));
-    const top3     = rankedOverall.slice(0, 3);
+    // Include all drinks that placed 1st, 2nd, or 3rd (ties expand the podium)
+    const top = rankedDrinks.filter(e => e.rank <= 3);
 
     return `
       <div class="results-section">
-        <h2>🏆 Overall</h2>
+        <h2>${title}</h2>
         <div class="podium">
-          ${top3.map((e, i) => {
+          ${top.map(e => {
             const d = drinkMap[e.id];
             if (!d) return '';
+            const medal     = medalForRank(e.rank);
+            const goldClass = e.rank === 1 ? ' podium-item--gold' : '';
             return `
-              <div class="podium-item">
-                <div class="podium-medal">${MEDALS[i] || (i + 1)}</div>
+              <div class="podium-item${goldClass}">
+                <div class="podium-medal">${medal ?? e.rank}</div>
                 <div>
                   <div class="podium-drink-name">${escapeHtml(d.name)}</div>
                   <div class="podium-drink-team">${escapeHtml(d.team_members.join(', '))}</div>
@@ -128,20 +108,19 @@ const Results = (() => {
     const rankedOverall = rankDrinks(overall);
     const drinkMap      = Object.fromEntries(State.drinks.map(d => [d.id, d]));
 
-    // Sort drinks by overall rank for the breakdown section
     const sorted = rankedOverall.map(e => drinkMap[e.id]).filter(Boolean);
 
-    // notesByDrink: { drinkId: [noteText, ...] }
     const notesByDrink = {};
     sharedNotes.forEach(n => {
       if (!notesByDrink[n.drink_id]) notesByDrink[n.drink_id] = [];
       if (n.note_text.trim()) notesByDrink[n.drink_id].push(n.note_text.trim());
     });
 
-    const cards = sorted.map((d, i) => {
-      const overallEntry  = rankedOverall.find(e => e.id === d.id);
-      const overallPts    = overallEntry?.pts || 0;
-      const overallRank   = overallEntry?.rank || '—';
+    const cards = sorted.map(d => {
+      const overallEntry = rankedOverall.find(e => e.id === d.id);
+      const overallPts   = overallEntry?.pts || 0;
+      const overallRank  = overallEntry?.rank ?? null;
+      const medal        = overallRank !== null ? medalForRank(overallRank) : null;
 
       const catChips = CATEGORIES.map(cat => {
         const pts = perCategory[cat][d.id] || 0;
@@ -157,8 +136,8 @@ const Results = (() => {
         <div class="results-drink-card">
           <div class="results-drink-header">
             <div>
-              <div class="results-drink-name">${MEDALS[i] ? MEDALS[i] + ' ' : ''}${escapeHtml(d.name)}</div>
-              <div class="results-overall-rank">Overall #${overallRank} — ${overallPts} pts total</div>
+              <div class="results-drink-name">${medal ? medal + ' ' : ''}${escapeHtml(d.name)}</div>
+              <div class="results-overall-rank">Overall #${overallRank ?? '—'} — ${overallPts} pts total</div>
             </div>
           </div>
           <div class="results-category-scores">${catChips}</div>
@@ -201,9 +180,9 @@ const Results = (() => {
 
       let html = '';
       CATEGORIES.forEach(cat => {
-        html += renderPodium(rankedByCategory[cat], cat);
+        html += renderPodiumSection(`${CAT_ICONS[cat]} ${CAT_LABELS[cat]}`, rankedByCategory[cat]);
       });
-      html += renderOverall(rankedOverall);
+      html += renderPodiumSection('🏆 Overall', rankedOverall);
       html += renderDrinkBreakdown(scores, sharedNotes);
 
       container.innerHTML = html;
@@ -244,7 +223,7 @@ const Results = (() => {
       const target      = document.getElementById('results-content');
 
       const canvas = await html2canvas(target, {
-        backgroundColor: '#fdf6ee',
+        backgroundColor: '#FAE0D6',
         scale: 2,           // retina quality
         useCORS: true,
         scrollY: -window.scrollY,
