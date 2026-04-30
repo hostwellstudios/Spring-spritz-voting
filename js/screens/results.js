@@ -149,6 +149,9 @@ const Results = (() => {
     return `<div class="results-section"><h2>All Drinks</h2>${cards}</div>`;
   }
 
+  // Stored after each successful load so downloadAsImage can use it
+  let _computed = null;
+
   // ----------------------------------------------------------------
   // Main load function — fetches votes + notes and renders
   // ----------------------------------------------------------------
@@ -177,6 +180,7 @@ const Results = (() => {
         rankedByCategory[cat] = rankDrinks(scores.perCategory[cat]);
       });
       const rankedOverall = rankDrinks(scores.overall);
+      _computed = { scores, rankedByCategory, rankedOverall };
 
       let html = '';
       CATEGORIES.forEach(cat => {
@@ -214,23 +218,113 @@ const Results = (() => {
     });
   }
 
+  function buildSummaryEl() {
+    const { scores, rankedByCategory, rankedOverall } = _computed;
+    const drinkMap = Object.fromEntries(State.drinks.map(d => [d.id, d]));
+
+    const C = {
+      bg:      '#FAE0D6',
+      surface: '#FEF3EE',
+      border:  '#E5C0B3',
+      primary: '#C8543F',
+      text:    '#3D1A10',
+      muted:   '#A06A58',
+    };
+
+    const overallWinners = rankedOverall.filter(e => e.rank === 1);
+    const topPts         = overallWinners[0]?.pts || 0;
+
+    const winnerNamesHtml = overallWinners.map(e => {
+      const d = drinkMap[e.id];
+      if (!d) return '';
+      return `
+        <div style="font-family:'Amarante',Georgia,serif;font-size:22px;color:${C.text};line-height:1.2;margin-bottom:2px">${escapeHtml(d.name)}</div>
+        ${d.team_members.length ? `<div style="font-size:12px;color:${C.muted};margin-bottom:6px">${escapeHtml(d.team_members.join(', '))}</div>` : ''}
+      `;
+    }).join('');
+
+    const catBoxes = CATEGORIES.map(cat => {
+      const winners = rankedByCategory[cat].filter(e => e.rank === 1);
+      const names   = winners.map(e => escapeHtml(drinkMap[e.id]?.name || '')).filter(Boolean).join(', ');
+      return `
+        <div style="background:${C.surface};border-radius:8px;padding:10px 8px;text-align:center;flex:1;min-width:0;border:1px solid ${C.border}">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:${C.muted};margin-bottom:3px">${CAT_ICONS[cat]} ${CAT_LABELS[cat]}</div>
+          <div style="font-size:20px;line-height:1.4">🥇</div>
+          <div style="font-size:11px;font-weight:600;color:${C.text};line-height:1.3">${names}</div>
+        </div>`;
+    }).join('');
+
+    const rankRows = rankedOverall.map(e => {
+      const d = drinkMap[e.id];
+      if (!d) return '';
+      const medal = medalForRank(e.rank);
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid ${C.border}">
+          <span style="width:26px;text-align:center;font-size:14px;flex-shrink:0">${medal ?? ''}</span>
+          <span style="flex:1;color:${C.text};font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(d.name)}</span>
+          <span style="color:${C.muted};font-size:12px;flex-shrink:0">${e.pts} pts</span>
+        </div>`;
+    }).join('');
+
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const el = document.createElement('div');
+    el.style.cssText = `position:absolute;left:-9999px;top:0;width:390px;background:${C.bg};font-family:'DM Sans',system-ui,sans-serif;padding:32px 24px;box-sizing:border-box`;
+
+    el.innerHTML = `
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-family:'Amarante',Georgia,serif;font-size:34px;color:${C.primary};line-height:1.1">Spring Spritz</div>
+        <div style="font-family:'Amarante',Georgia,serif;font-size:18px;color:${C.muted};line-height:1.5">2026</div>
+        <div style="font-size:11px;color:${C.muted};margin-top:4px">${date}</div>
+      </div>
+
+      <div style="background:${C.surface};border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;border:1.5px solid ${C.primary}">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:${C.muted};margin-bottom:6px">Overall Winner</div>
+        <div style="font-size:40px;line-height:1.3;margin-bottom:6px">🥇</div>
+        ${winnerNamesHtml}
+        <div style="font-size:15px;color:${C.primary};font-weight:700;margin-top:4px">${topPts} pts</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:20px">${catBoxes}</div>
+
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:${C.muted};margin-bottom:8px">Full Rankings</div>
+        ${rankRows}
+      </div>
+
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:${C.muted}">🍹 Spring Spritz 2026</div>
+    `;
+
+    return el;
+  }
+
   async function downloadAsImage() {
     const btn = document.getElementById('image-download-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Capturing…'; }
 
+    if (!_computed) {
+      showToast('Results not loaded yet', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '📸 Save as Image'; }
+      return;
+    }
+
+    let summaryEl = null;
     try {
       const html2canvas = await loadHtml2Canvas();
-      const target      = document.getElementById('results-content');
+      summaryEl = buildSummaryEl();
+      document.body.appendChild(summaryEl);
 
-      const canvas = await html2canvas(target, {
+      await new Promise(r => requestAnimationFrame(r));
+
+      const canvas = await html2canvas(summaryEl, {
         backgroundColor: '#FAE0D6',
-        scale: 2,           // retina quality
+        scale: 2,
         useCORS: true,
-        scrollY: -window.scrollY,
+        logging: false,
       });
 
       const link    = document.createElement('a');
-      link.download = 'spritz-results.png';
+      link.download = 'spring-spritz-2026-results.png';
       link.href     = canvas.toDataURL('image/png');
       link.click();
       showToast('Image saved ✓', 'success');
@@ -238,6 +332,7 @@ const Results = (() => {
       console.error(err);
       showToast('Could not save image', 'error');
     } finally {
+      if (summaryEl) summaryEl.remove();
       if (btn) { btn.disabled = false; btn.textContent = '📸 Save as Image'; }
     }
   }
