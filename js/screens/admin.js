@@ -108,7 +108,7 @@ const Admin = (() => {
         showToast('Drink added ✓', 'success');
       } catch (err) {
         console.error(err);
-        showToast('Could not add drink', 'error');
+        showToast(err.message || 'Could not add drink', 'error');
       } finally {
         submitBtn.disabled = false;
       }
@@ -128,7 +128,7 @@ const Admin = (() => {
         showToast('Phase advanced to ' + PHASE_LABELS[nextPhase], 'success');
       } catch (err) {
         console.error(err);
-        showToast('Could not advance phase', 'error');
+        showToast(err.message || 'Could not advance phase', 'error');
         advanceBtn.disabled = false;
       }
     });
@@ -145,7 +145,7 @@ const Admin = (() => {
         showToast('Results shared with everyone 🎉', 'success');
       } catch (err) {
         console.error(err);
-        showToast('Could not share results', 'error');
+        showToast(err.message || 'Could not share results', 'error');
         shareBtn.disabled = false;
       }
     });
@@ -161,7 +161,7 @@ const Admin = (() => {
         showToast('Party reset — back to the start', 'success');
       } catch (err) {
         console.error(err);
-        showToast('Could not reset', 'error');
+        showToast(err.message || 'Could not reset', 'error');
         resetBtn.disabled = false;
       }
     });

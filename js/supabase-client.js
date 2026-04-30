@@ -133,11 +133,35 @@ async function fetchSharedNotes() {
 // Admin-only helpers — call the Edge Function (service_role key stays server-side)
 
 async function callAdminFunction(action, payload = {}) {
-  const { data, error } = await anonClient.functions.invoke('admin', {
-    body: { action, password: CONFIG.adminPassword, ...payload },
-  });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+  let data, error;
+
+  try {
+    ({ data, error } = await anonClient.functions.invoke('admin', {
+      body: { action, password: CONFIG.adminPassword, ...payload },
+    }));
+  } catch (invokeErr) {
+    console.error('Edge Function invoke failed:', invokeErr);
+    throw new Error('Could not reach Edge Function — is it deployed?');
+  }
+
+  if (error) {
+    // Try to extract the response body for a descriptive message
+    let msg = error.message || String(error);
+    try {
+      if (error.context && typeof error.context.json === 'function') {
+        const body = await error.context.json();
+        if (body?.error) msg = body.error;
+      }
+    } catch (_) {}
+    console.error('Edge Function error:', msg, error);
+    throw new Error(msg);
+  }
+
+  if (data?.error) {
+    console.error('Edge Function returned error:', data.error);
+    throw new Error(data.error);
+  }
+
   return data;
 }
 
