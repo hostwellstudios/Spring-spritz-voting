@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Spritz Competition 🍹</title>
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Admin panel — fixed top overlay, only visible when isAdmin -->
+    <section id="screen-admin" class="admin-panel" hidden>
+      <div class="admin-inner">
+        <div class="admin-header">
+          <span class="admin-badge">⚙️ Admin</span>
+          <span id="admin-phase-label" class="admin-phase-label"></span>
+        </div>
+        <div id="admin-drinks-section" class="admin-section">
+          <h3>Drinks</h3>
+          <ul id="admin-drinks-list" class="admin-drinks-list"></ul>
+          <form id="admin-add-drink-form" class="admin-add-form">
+            <input id="admin-drink-name" type="text" placeholder="Drink name" required autocomplete="off" />
+            <input id="admin-team-members" type="text" placeholder="Team members (comma-separated)" autocomplete="off" />
+            <button type="submit" class="btn btn-sm">Add Drink</button>
+          </form>
+        </div>
+        <div class="admin-section">
+          <button id="admin-advance-btn" class="btn btn-primary btn-full"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guest screens -->
+    <main id="main-content">
+
+      <!-- Onboarding: name + team selection -->
+      <section id="screen-onboarding" class="screen" hidden>
+        <div class="screen-inner">
+          <div class="logo">🍹</div>
+          <h1>Spritz Competition</h1>
+          <p class="subtitle">Welcome! Register to join the fun.</p>
+          <form id="onboarding-form" class="card form-card">
+            <div class="field">
+              <label for="guest-name">Your name</label>
+              <input id="guest-name" type="text" placeholder="Enter your name" required autocomplete="off" autocapitalize="words" />
+            </div>
+            <div class="field">
+              <label for="guest-drink">Your drink team</label>
+              <select id="guest-drink">
+                <option value="">Just here to taste</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Join the Party</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Waiting / holding screen -->
+      <section id="screen-waiting" class="screen" hidden>
+        <div class="screen-inner screen-center">
+          <div class="logo">⏳</div>
+          <h1 id="waiting-title">Party starts soon…</h1>
+          <p id="waiting-subtitle" class="subtitle"></p>
+        </div>
+      </section>
+
+      <!-- Tasting phase -->
+      <section id="screen-tasting" class="screen" hidden>
+        <div class="screen-inner">
+          <h1>Tasting Notes</h1>
+          <p class="subtitle">Tap a drink to add your notes.</p>
+          <ul id="tasting-drinks-list" class="drinks-list"></ul>
+        </div>
+        <!-- Note editor bottom sheet -->
+        <div id="note-sheet" class="bottom-sheet" hidden>
+          <div class="bottom-sheet-backdrop"></div>
+          <div class="bottom-sheet-panel">
+            <div class="bottom-sheet-header">
+              <h2 id="note-sheet-title">Tasting Note</h2>
+              <button id="note-sheet-close" class="icon-btn" aria-label="Close">✕</button>
+            </div>
+            <div class="bottom-sheet-body">
+              <textarea id="note-text" rows="5" placeholder="What do you taste? Aromas, flavours, finish…"></textarea>
+              <label class="toggle-label">
+                <input id="note-share" type="checkbox" />
+                <span>Share anonymously in the final readout</span>
+              </label>
+            </div>
+            <div class="bottom-sheet-footer">
+              <button id="note-save-btn" class="btn btn-primary btn-full">Save Note</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Voting phase -->
+      <section id="screen-voting" class="screen" hidden>
+        <div class="screen-inner">
+          <h1>Cast Your Votes</h1>
+          <p class="subtitle">Rank every drink in each category.</p>
+          <div class="tab-bar">
+            <button class="tab-btn active" data-category="taste">Taste</button>
+            <button class="tab-btn" data-category="creativity">Creativity</button>
+            <button class="tab-btn" data-category="presentation">Presentation</button>
+          </div>
+          <div id="voting-panels">
+            <div id="voting-panel-taste"        class="voting-panel active"></div>
+            <div id="voting-panel-creativity"   class="voting-panel"></div>
+            <div id="voting-panel-presentation" class="voting-panel"></div>
+          </div>
+          <div class="voting-footer">
+            <div id="voting-status" class="voting-status"></div>
+            <button id="submit-votes-btn" class="btn btn-primary btn-full" disabled>Submit Votes</button>
+          </div>
+        </div>
+        <!-- Confirmation modal -->
+        <div id="vote-confirm-modal" class="modal-overlay" hidden>
+          <div class="modal-panel">
+            <h2>Submit your votes?</h2>
+            <p>This cannot be changed after submission.</p>
+            <div class="modal-actions">
+              <button id="vote-confirm-cancel" class="btn btn-ghost">Cancel</button>
+              <button id="vote-confirm-ok" class="btn btn-primary">Confirm</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results phase -->
+      <section id="screen-results" class="screen" hidden>
+        <div class="screen-inner">
+          <h1>🏆 Results</h1>
+          <div id="results-content">
+            <p class="subtitle">Calculating scores…</p>
+          </div>
+          <div id="admin-pdf-section" class="admin-pdf-section" hidden>
+            <button id="pdf-download-btn" class="btn btn-primary btn-full">Download PDF</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast" hidden></div>
+
+  </div>
+
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- App modules (order matters) -->
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/screens/onboarding.js"></script>
+  <script src="js/screens/admin.js"></script>
+  <script src="js/screens/tasting.js"></script>
+  <script src="js/screens/voting.js"></script>
+  <script src="js/screens/results.js"></script>
+  <script src="js/pdf-export.js"></script>
+
+  <script>
+    // Bootstrap the app once DOM + all scripts are loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      App.init();
+    });
+  </script>
+</body>
+</html>

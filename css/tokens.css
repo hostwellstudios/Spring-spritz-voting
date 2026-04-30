@@ -1,0 +1,52 @@
+:root {
+  /* Brand palette */
+  --color-bg:          #fdf6ee;
+  --color-surface:     #ffffff;
+  --color-border:      #e8ddd1;
+  --color-primary:     #d4622a;
+  --color-primary-dk:  #b5511f;
+  --color-accent:      #f0a500;
+  --color-text:        #1a1007;
+  --color-text-muted:  #7a6552;
+  --color-success:     #2d8a4e;
+  --color-success-bg:  #e8f5ed;
+  --color-error:       #c0392b;
+  --color-error-bg:    #fdecea;
+  --color-overlay:     rgba(0, 0, 0, 0.45);
+  --color-admin-bg:    #1a1007;
+  --color-admin-text:  #f5e6d0;
+
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Type scale */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
+
+  /* Radii */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+
+  /* Transitions */
+  --transition: 180ms ease;
+}
