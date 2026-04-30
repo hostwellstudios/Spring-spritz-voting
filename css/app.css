@@ -5,6 +5,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
+  font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
 }
@@ -55,24 +56,52 @@ body {
    TYPOGRAPHY
    ============================================================ */
 
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
 h1 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-3xl);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.1;
   margin-bottom: var(--sp-2);
 }
 
-h2 { font-size: var(--text-xl); font-weight: 600; }
-h3 { font-size: var(--text-lg); font-weight: 600; }
+h2 { font-size: var(--text-2xl); font-weight: 600; }
+h3 { font-size: var(--text-xl); font-weight: 600; }
 
 .subtitle {
   color: var(--color-text-muted);
   margin-bottom: var(--sp-5);
+  font-size: var(--text-base);
 }
 
 .logo {
-  font-size: 56px;
+  font-size: 48px;
   line-height: 1;
+}
+
+/* Decorative divider in the style of the brand */
+.brand-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: var(--sp-2) 0 var(--sp-5);
+}
+
+.brand-rule::before,
+.brand-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-primary);
+  opacity: 0.45;
 }
 
 /* ============================================================
@@ -84,10 +113,13 @@ h3 { font-size: var(--text-lg); font-weight: 600; }
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-5);
+  padding: var(--sp-3) var(--sp-6);
   border-radius: var(--radius-full);
-  font-size: var(--text-base);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: background var(--transition), opacity var(--transition), transform var(--transition);
   -webkit-tap-highlight-color: transparent;
@@ -149,7 +181,7 @@ h3 { font-size: var(--text-lg); font-weight: 600; }
 .card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   padding: var(--sp-5);
   box-shadow: var(--shadow-sm);
 }
@@ -237,7 +269,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 .drink-card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   padding: var(--sp-4) var(--sp-5);
   display: flex;
   align-items: center;
@@ -354,7 +386,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
 .vote-row {
   background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--sp-3) var(--sp-4);
   display: flex;
@@ -366,8 +398,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   width: 28px;
   height: 28px;
   border-radius: var(--radius-full);
-  background: var(--color-accent);
-  color: #fff;
+  background: var(--color-primary);
+  color: #FEF3EE;
   font-weight: 700;
   font-size: var(--text-sm);
   display: flex;
@@ -482,8 +514,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 }
 
 .podium-item:first-child {
-  border-color: var(--color-accent);
-  background: #fffbf0;
+  border-color: var(--color-primary);
+  background: #FEF3EE;
 }
 
 .podium-medal {
@@ -543,13 +575,14 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
 .results-notes { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
 .results-note-item {
-  background: var(--color-bg);
-  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  border-left: 2px solid var(--color-primary);
   padding: var(--sp-2) var(--sp-3);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   font-style: italic;
+  font-family: var(--font-display);
 }
 
 .admin-pdf-section {
@@ -568,7 +601,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   background: var(--color-admin-bg);
   color: var(--color-admin-text);
   padding: var(--sp-4);
-  border-bottom: 2px solid #3a2510;
+  border-bottom: 1px solid rgba(250, 224, 214, 0.15);
 }
 
 #screen-admin[hidden] { display: none !important; }
@@ -592,7 +625,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--color-admin-text);
 }
 
 .admin-phase-label {
@@ -601,7 +634,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 }
 
 .admin-section {
-  border-top: 1px solid #3a2510;
+  border-top: 1px solid rgba(250, 224, 214, 0.15);
   padding-top: var(--sp-4);
 }
 
@@ -610,7 +643,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-accent);
+  color: var(--color-admin-text);
+  opacity: 0.7;
   margin-bottom: var(--sp-3);
 }
 
@@ -655,7 +689,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
 .admin-add-form .btn {
   align-self: flex-start;
-  background: var(--color-accent);
+  background: var(--color-admin-text);
   color: var(--color-admin-bg);
 }
 
