@@ -50,6 +50,21 @@ const Admin = (() => {
     });
   }
 
+  async function renderVoteProgress() {
+    const el = document.getElementById('admin-vote-progress');
+    if (!el) return;
+    if (State.phase !== 'voting') { el.hidden = true; return; }
+    el.hidden = false;
+    el.textContent = '👥 Loading…';
+    try {
+      const { submitted, total } = await fetchVotingProgress();
+      el.textContent = `👥 ${submitted} of ${total} ${total === 1 ? 'person has' : 'people have'} submitted votes`;
+    } catch (err) {
+      console.error('fetchVotingProgress:', err);
+      el.textContent = '👥 Could not load vote count';
+    }
+  }
+
   function renderPhaseControls() {
     const label      = document.getElementById('admin-phase-label');
     const advanceBtn = document.getElementById('admin-advance-btn');
@@ -77,6 +92,8 @@ const Admin = (() => {
 
     // Reset button always visible
     if (resetBtn) resetBtn.disabled = false;
+
+    renderVoteProgress();
   }
 
   function init() {
@@ -171,7 +188,7 @@ const Admin = (() => {
     if (State.isAdmin) renderPhaseControls();
   }
 
-  return { init, onPhaseChange, renderDrinks };
+  return { init, onPhaseChange, renderDrinks, renderVoteProgress };
 })();
 
 // ----------------------------------------------------------------

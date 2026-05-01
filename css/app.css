@@ -513,7 +513,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   padding: var(--sp-3) var(--sp-4);
 }
 
-.podium-item:first-child {
+.podium-item--gold {
   border-color: var(--color-primary);
   background: #FEF3EE;
 }
@@ -682,6 +682,16 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   color: var(--color-admin-text);
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--text-sm);
+}
+
+.admin-vote-progress {
+  background: rgba(250, 224, 214, 0.12);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-admin-text);
 }
 
 .admin-add-form input::placeholder { color: #a08060; }

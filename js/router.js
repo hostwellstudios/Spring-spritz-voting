@@ -175,9 +175,10 @@ const App = (() => {
       Onboarding.refreshDrinkSelect();
     });
 
-    // Admin watches votes for live tally during results
+    // Admin watches votes for live tally during voting and results
     if (State.isAdmin) {
       subscribeToVotesChanges(() => {
+        if (State.phase === 'voting')  Admin.renderVoteProgress();
         if (State.phase === 'results') Results.load();
       });
     }
