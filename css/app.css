@@ -685,10 +685,13 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 }
 
 .admin-vote-progress {
+  background: rgba(250, 224, 214, 0.12);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-2);
   font-size: var(--text-sm);
+  font-weight: 600;
   color: var(--color-admin-text);
-  opacity: 0.8;
-  padding: var(--sp-2) 0 0;
 }
 
 .admin-add-form input::placeholder { color: #a08060; }

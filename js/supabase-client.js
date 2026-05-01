@@ -123,12 +123,12 @@ async function fetchAllVotes() {
 async function fetchVotingProgress() {
   const [votesRes, guestsRes] = await Promise.all([
     anonClient.from('votes').select('guest_id'),
-    anonClient.from('guests').select('id', { count: 'exact', head: true }),
+    anonClient.from('guests').select('id'),
   ]);
   if (votesRes.error) throw votesRes.error;
   if (guestsRes.error) throw guestsRes.error;
   const submitted = new Set(votesRes.data.map(v => v.guest_id)).size;
-  return { submitted, total: guestsRes.count ?? 0 };
+  return { submitted, total: guestsRes.data.length };
 }
 
 async function fetchSharedNotes() {

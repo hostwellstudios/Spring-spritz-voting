@@ -54,12 +54,14 @@ const Admin = (() => {
     const el = document.getElementById('admin-vote-progress');
     if (!el) return;
     if (State.phase !== 'voting') { el.hidden = true; return; }
+    el.hidden = false;
+    el.textContent = '👥 Loading…';
     try {
       const { submitted, total } = await fetchVotingProgress();
-      el.textContent = `${submitted} of ${total} ${total === 1 ? 'person has' : 'people have'} submitted their votes`;
-      el.hidden = false;
-    } catch (_) {
-      el.hidden = true;
+      el.textContent = `👥 ${submitted} of ${total} ${total === 1 ? 'person has' : 'people have'} submitted votes`;
+    } catch (err) {
+      console.error('fetchVotingProgress:', err);
+      el.textContent = '👥 Could not load vote count';
     }
   }
 
