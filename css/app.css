@@ -687,9 +687,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 .admin-vote-progress {
   font-size: var(--text-sm);
   color: var(--color-admin-text);
-  opacity: 0.75;
-  text-align: center;
-  padding: var(--sp-2) 0 var(--sp-3);
+  opacity: 0.8;
+  padding: var(--sp-2) 0 0;
 }
 
 .admin-add-form input::placeholder { color: #a08060; }
